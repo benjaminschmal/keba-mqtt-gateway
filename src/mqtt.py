@@ -28,8 +28,10 @@ class MqttPublisher:
         if username:
             self.client.username_pw_set(username, password)
         self.client.connect(host, port, keepalive=60)
+        self.client.loop_start()
 
     def close(self) -> None:
+        self.client.loop_stop()
         self.client.disconnect()
 
     def publish_data(self, data: KebaData, retain: bool = True) -> None:
