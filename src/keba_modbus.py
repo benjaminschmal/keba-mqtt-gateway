@@ -24,6 +24,7 @@ class KebaData:
     max_current_a: float
     max_supported_current_a: float
     session_energy_kwh: float
+    phase_switching_source: int
     phase_switching_state: int
 
     @property
@@ -45,11 +46,7 @@ class KebaModbusClient:
         unit_id: int = UNIT_ID,
         timeout: float = 3.0,
     ) -> None:
-        self.client = ModbusTcpClient(
-            host=host,
-            port=port,
-            timeout=timeout,
-        )
+        self.client = ModbusTcpClient(host=host, port=port, timeout=timeout)
         self.unit_id = unit_id
 
     def connect(self) -> bool:
@@ -59,22 +56,16 @@ class KebaModbusClient:
         self.client.close()
 
     def read_uint32(self, address: int) -> int:
-        """Read one KEBA UINT32 using Modbus FC3.
-
-        KEBA documents one readable value as one UINT32 occupying two
-        Modbus words. The EVCC proxy forwards the read to the KEBA.
-        """
+        """Read one KEBA UINT32 using Modbus FC3."""
         response = self.client.read_holding_registers(
             address=address,
             count=2,
             slave=self.unit_id,
         )
-
         if response.isError():
             raise RuntimeError(
                 f"Modbus read failed for register {address}: {response}"
             )
-
         return self.decode_uint32(response.registers)
 
     @staticmethod
@@ -85,7 +76,7 @@ class KebaModbusClient:
 
     @staticmethod
     def decode_data(raw: Mapping[int, int]) -> KebaData:
-        """Decode verified KEBA P30 read-only registers into domain values."""
+        """Decode the live-verified KEBA P30 read-only register set."""
         return KebaData(
             charging_state=raw[1000],
             cable_state=raw[1004],
@@ -102,33 +93,15 @@ class KebaModbusClient:
             max_current_a=raw[1100] / 1000.0,
             max_supported_current_a=raw[1110] / 1000.0,
             session_energy_kwh=raw[1502] / 10000.0,
+            phase_switching_source=raw[1550],
             phase_switching_state=raw[1552],
         )
 
     def read_data(self) -> KebaData:
-        """Read the verified P30 read-only data set.
-
-        KEBA recommends more than 0.5 seconds between register reads.
-        Poll scheduling will therefore be handled by the gateway rather
-        than issuing a burst of reads here.
-        """
+        """Read the live-verified P30 data set."""
         addresses = (
-            1000,
-            1004,
-            1006,
-            1008,
-            1010,
-            1012,
-            1020,
-            1036,
-            1040,
-            1042,
-            1044,
-            1046,
-            1100,
-            1110,
-            1502,
-            1552,
+            1000, 1004, 1006, 1008, 1010, 1012, 1020, 1036,
+            1040, 1042, 1044, 1046, 1100, 1110, 1502, 1550, 1552,
         )
         raw = {address: self.read_uint32(address) for address in addresses}
         return self.decode_data(raw)
