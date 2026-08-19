@@ -20,6 +20,7 @@ FIXTURE = {
     1100: 10000,
     1110: 10000,
     1502: 165,
+    1550: 3,
     1552: 3,
 }
 
@@ -46,6 +47,7 @@ def test_decode_keba_data():
     assert data.max_current_a == pytest.approx(10.0)
     assert data.max_supported_current_a == pytest.approx(10.0)
     assert data.session_energy_kwh == pytest.approx(0.0165)
+    assert data.phase_switching_source == 3
     assert data.phase_switching_state == 3
 
     assert data.connected is True
