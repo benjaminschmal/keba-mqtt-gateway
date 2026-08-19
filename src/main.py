@@ -1,13 +1,6 @@
 """KEBA MQTT Gateway entry point."""
 
-
-def main() -> None:
-    """Start the gateway.
-
-    Runtime functionality will be added after the KEBA register mapping
-    has been verified through the EVCC Modbus proxy.
-    """
-    raise SystemExit("Gateway implementation not yet available")
+from .gateway import main
 
 
 if __name__ == "__main__":
