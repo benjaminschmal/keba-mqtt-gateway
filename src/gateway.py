@@ -2,8 +2,6 @@ from __future__ import annotations
 
 import os
 import threading
-import time
-from typing import Callable
 
 from .keba_modbus import KebaData, KebaModbusClient
 from .mqtt import MqttPublisher
@@ -45,6 +43,8 @@ class Gateway:
             self.mqtt_user,
             self.mqtt_password,
         )
+        # Discovery is retained so Home Assistant can rediscover the device.
+        self.mqtt.publish_discovery()
 
         while not self._stop.is_set():
             try:
