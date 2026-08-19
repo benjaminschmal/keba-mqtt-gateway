@@ -21,7 +21,6 @@ small { color: #666; }
 .grid { display: grid; grid-template-columns: repeat(auto-fit,minmax(220px,1fr)); gap: 1rem; margin-top: 1.5rem; }
 .card { border: 1px solid #ddd; border-radius: 10px; padding: 1rem; }
 .value { font-size: 1.6rem; font-weight: 600; margin-top: .4rem; }
-.ok { color: #188038; } .bad { color: #b3261e; }
 </style>
 </head>
 <body>
@@ -38,13 +37,20 @@ async function refresh() {
     ['MQTT', data.mqtt_connected ? 'Connected' : 'Disconnected'],
     ['Charging', data.charging ? 'Yes' : 'No'],
     ['Connected', data.connected ? 'Yes' : 'No'],
+    ['Charging State', data.charging_state ?? 'n/a'],
+    ['Cable State', data.cable_state ?? 'n/a'],
     ['Active Power', (data.active_power_w ?? 0).toFixed(1) + ' W'],
     ['Total Energy', (data.total_energy_kwh ?? 0).toFixed(4) + ' kWh'],
     ['Session Energy', (data.session_energy_kwh ?? 0).toFixed(4) + ' kWh'],
     ['Current L1/L2/L3', `${(data.current_l1_a ?? 0).toFixed(2)} / ${(data.current_l2_a ?? 0).toFixed(2)} / ${(data.current_l3_a ?? 0).toFixed(2)} A`],
     ['Voltage L1/L2/L3', `${data.voltage_l1_v ?? 0} / ${data.voltage_l2_v ?? 0} / ${data.voltage_l3_v ?? 0} V`],
     ['Power Factor', ((data.power_factor ?? 0) * 100).toFixed(1) + ' %'],
+    ['Max Charging Current', (data.max_current_a ?? 0).toFixed(2) + ' A'],
+    ['Max Supported Current', (data.max_supported_current_a ?? 0).toFixed(2) + ' A'],
+    ['Phase Switching Source', data.phase_switching_source ?? 'n/a'],
+    ['Phase Switching State', data.phase_switching_state ?? 'n/a'],
     ['Error Code', data.error_code ?? 'n/a'],
+    ['Last Error', data.last_error || 'None'],
   ];
   document.getElementById('cards').innerHTML = values.map(([name,value]) => `<div class="card"><div>${name}</div><div class="value">${value}</div></div>`).join('');
 }
@@ -63,6 +69,7 @@ class WebState:
             "timestamp": None,
             "modbus_connected": False,
             "mqtt_connected": False,
+            "last_error": None,
         }
 
     def update(self, **values: Any) -> None:
