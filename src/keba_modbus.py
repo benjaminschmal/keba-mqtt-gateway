@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, List
+from typing import Mapping, Sequence
 
 from pymodbus.client import ModbusTcpClient
 
@@ -45,15 +45,12 @@ class KebaModbusClient:
         unit_id: int = UNIT_ID,
         timeout: float = 3.0,
     ) -> None:
-        self.host = host
-        self.port = port
-        self.unit_id = unit_id
-        self.timeout = timeout
         self.client = ModbusTcpClient(
-            host=self.host,
-            port=self.port,
-            timeout=self.timeout,
+            host=host,
+            port=port,
+            timeout=timeout,
         )
+        self.unit_id = unit_id
 
     def connect(self) -> bool:
         return self.client.connect()
@@ -62,10 +59,10 @@ class KebaModbusClient:
         self.client.close()
 
     def read_uint32(self, address: int) -> int:
-        """Read one KEBA UINT32 register using FC3.
+        """Read one KEBA UINT32 using Modbus FC3.
 
-        KEBA exposes each readable value as a UINT32, therefore exactly
-        two Modbus words are requested per register.
+        KEBA documents one readable value as one UINT32 occupying two
+        Modbus words. The EVCC proxy forwards the read to the KEBA.
         """
         response = self.client.read_holding_registers(
             address=address,
@@ -78,38 +75,17 @@ class KebaModbusClient:
                 f"Modbus read failed for register {address}: {response}"
             )
 
-        if len(response.registers) != 2:
-            raise RuntimeError(
-                f"Unexpected register count for {address}: "
-                f"{len(response.registers)}"
-            )
+        return self.decode_uint32(response.registers)
 
-        return (response.registers[0] << 16) | response.registers[1]
+    @staticmethod
+    def decode_uint32(registers: Sequence[int]) -> int:
+        if len(registers) != 2:
+            raise ValueError("A KEBA UINT32 requires exactly two registers")
+        return (registers[0] << 16) | registers[1]
 
-    def read_data(self) -> KebaData:
-        """Read the core read-only KEBA data set."""
-        raw: Dict[int, int] = {
-            address: self.read_uint32(address)
-            for address in (
-                1000,
-                1004,
-                1006,
-                1008,
-                1010,
-                1012,
-                1020,
-                1036,
-                1040,
-                1042,
-                1044,
-                1046,
-                1100,
-                1110,
-                1502,
-                1552,
-            )
-        }
-
+    @staticmethod
+    def decode_data(raw: Mapping[int, int]) -> KebaData:
+        """Decode verified KEBA P30 read-only registers into domain values."""
         return KebaData(
             charging_state=raw[1000],
             cable_state=raw[1004],
@@ -129,8 +105,30 @@ class KebaModbusClient:
             phase_switching_state=raw[1552],
         )
 
-    @staticmethod
-    def decode_uint32(registers: List[int]) -> int:
-        if len(registers) != 2:
-            raise ValueError("A KEBA UINT32 requires exactly two registers")
-        return (registers[0] << 16) | registers[1]
+    def read_data(self) -> KebaData:
+        """Read the verified P30 read-only data set.
+
+        KEBA recommends more than 0.5 seconds between register reads.
+        Poll scheduling will therefore be handled by the gateway rather
+        than issuing a burst of reads here.
+        """
+        addresses = (
+            1000,
+            1004,
+            1006,
+            1008,
+            1010,
+            1012,
+            1020,
+            1036,
+            1040,
+            1042,
+            1044,
+            1046,
+            1100,
+            1110,
+            1502,
+            1552,
+        )
+        raw = {address: self.read_uint32(address) for address in addresses}
+        return self.decode_data(raw)
