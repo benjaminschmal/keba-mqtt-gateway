@@ -13,6 +13,12 @@ class FakeClient:
     def connect(self, host, port, keepalive=60):
         self.connection = (host, port, keepalive)
 
+    def loop_start(self):
+        self.loop_started = True
+
+    def loop_stop(self):
+        self.loop_started = False
+
     def disconnect(self):
         self.disconnected = True
 
