@@ -38,6 +38,8 @@ The gateway never connects directly to the KEBA wallbox. EVCC remains the only d
 - `/health` health endpoint
 - Docker support
 - Automated tests for decoding and MQTT behavior
+- GitHub Actions Docker image build
+- GitHub Container Registry (GHCR) publishing
 
 ## Verified data
 
@@ -92,6 +94,83 @@ Open `http://localhost:8080` for the live monitoring page.
 ## Docker
 
 The container exposes port `8080` for the web interface. Pass the MQTT credentials and EVCC proxy settings as environment variables. The container is intended for a trusted local network.
+
+### Build locally
+
+```bash
+docker build -t keba-mqtt-gateway:latest .
+```
+
+## Docker Image via GitHub Container Registry
+
+The repository automatically builds and publishes the Docker image using **GitHub Actions** whenever changes are pushed to the `main` branch.
+
+The published image is available at:
+
+```text
+ghcr.io/benjaminschmal/keba-mqtt-gateway:latest
+```
+
+A second image tag containing the Git commit SHA is also published for reproducible deployments.
+
+The workflow is located at:
+
+```text
+.github/workflows/docker-publish.yml
+```
+
+### Using the image on QNAP Container Station
+
+The image can be deployed directly from **QNAP Container Station** without building the Docker image on the QNAP.
+
+In the Container Station **Create Container** dialog, use:
+
+```text
+Registry: ghcr.io
+Image: ghcr.io/benjaminschmal/keba-mqtt-gateway:latest
+```
+
+Configure the required environment variables in the container settings:
+
+```text
+EVCC_HOST
+EVCC_MODBUS_PORT
+EVCC_UNIT_ID
+EVCC_TIMEOUT
+
+MQTT_HOST
+MQTT_PORT
+MQTT_USER
+MQTT_PASSWORD
+
+POLL_INTERVAL
+WEB_HOST
+WEB_PORT
+```
+
+Map the web interface port:
+
+```text
+Container port: 8080
+```
+
+This approach keeps the build process separate from the QNAP runtime:
+
+```text
+GitHub repository
+       ↓
+GitHub Actions
+       ↓
+Docker image build
+       ↓
+GitHub Container Registry (GHCR)
+       ↓
+QNAP Container Station
+       ↓
+keba-mqtt-gateway container
+```
+
+After a new version is pushed to `main`, GitHub Actions creates and publishes a new `latest` image. The QNAP container can then be updated by pulling the latest image and recreating the container with the same configuration.
 
 ## Security
 
