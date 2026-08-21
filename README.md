@@ -1,5 +1,7 @@
 # KEBA MQTT Gateway
 
+[![Docker Build](https://github.com/benjaminschmal/keba-mqtt-gateway/actions/workflows/docker-publish.yml/badge.svg)](https://github.com/benjaminschmal/keba-mqtt-gateway/actions/workflows/docker-publish.yml)
+
 Read-only MQTT gateway for a KEBA KeContact P30 X-Series.
 
 The gateway reads KEBA data through the EVCC Modbus TCP proxy and publishes the values via MQTT, including Home Assistant MQTT Discovery. A lightweight web interface provides live status and diagnostics.
@@ -118,6 +120,8 @@ The workflow is located at:
 ```text
 .github/workflows/docker-publish.yml
 ```
+
+The **Docker Build** badge at the top of this README shows the current status of this workflow. It is green when the latest workflow run succeeded and red when the build or publishing failed.
 
 ### Using the image on QNAP Container Station
 
